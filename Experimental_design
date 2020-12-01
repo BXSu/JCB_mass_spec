@@ -1,0 +1,18 @@
+label
+condition
+replicate
+1	A1	A_notag	1
+2	A2	A_notag	2
+3	A3	A_notag	3
+4	C1	B_wt	1
+5	C2	B_wt	2
+6	C3	B_wt	3
+7	D1	C_siz1siz2	1
+8	D2	C_siz1siz2	2
+9	D3	C_siz1siz2	3
+10	E1	D_4R	1
+11	E2	D_4R	2
+12	E3	D_4R	3
+13	G1	E_3A	1
+14	G2	E_3A	2
+15	G3	E_3A	3
