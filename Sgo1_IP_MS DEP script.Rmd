@@ -1,0 +1,102 @@
+---
+title: "Sgo1 benomyl IP_MS"
+author: "BXS"
+date: "01/12/2020"
+output: html_document
+---
+
+
+## Sgo1 benomyl MS analysis 
+
+
+```{r}
+library("DEP")
+library("plotly")
+library("dplyr")
+library("SummarizedExperiment")
+library("ComplexHeatmap")
+library("tidyverse")
+library("reshape2")
+library("ggplot2")
+```
+
+```{r}
+#Read data
+proteinGroups <- read.delim("C:/Users/xuesu/Dropbox/Bessie 2020/txt_E200217_Bessie_LFQ_ALL/proteinGroups.txt", stringsAsFactors=FALSE)
+View(proteinGroups)
+# Remove data irrelevant for this study
+remove<-c("B1","B2","B3","F1","F2","F3")
+data <- proteinGroups[,-grep(paste(remove,collapse="|"),colnames(proteinGroups))]
+# Filter out contaminants
+data <- filter(data, Reverse != "+", Potential.contaminant != "+")
+# Remove duplicated genes
+data$Gene.names %>% duplicated() %>% any()
+data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
+data$name %>% duplicated() %>% any()
+```
+
+```{r}
+# Experimental design
+LFQ_columns <- grep("LFQ.", colnames(data_unique))
+library(readxl)
+Experimental_design <- read_excel("C:/Users/xuesu/Dropbox/Bessie 2020/txt_E200217_Bessie_LFQ_ALL/Experimental_design.xlsx")
+View(Experimental_design)
+data_se <- make_se(data_unique, LFQ_columns, Experimental_design)
+
+```
+
+```{r}
+# Plot a barplot of the protein identification overlap between samples
+pdf("Sgo1 benomyl MS protein ID overlap", width=8, height=5, pointsize=1)
+plot_frequency(data_se)
+dev.off()
+```
+
+```{r}
+# Filtering to keep interactors identified in all 3 biological repeats
+data_filt <- filter_missval(data_se, thr = 0)
+# Plot a barplot of the number of identified proteins per samples
+pdf("Sgo1 benomyl MS number of IDed proteins", width=8, height=5, pointsize=1)
+plot_numbers(data_filt)
+dev.off()
+# Plot a barplot of the protein identification overlap between samples
+pdf("Sgo1 benomyl MS overlapping proteins IDed", width=8, height=5, pointsize=1)
+plot_coverage(data_filt)
+dev.off()
+# Important: I decided not to perform normalization, because it does not make sense to normalize with no tag samples!
+```
+
+```{r}
+# Imputation
+data_imp <- impute(data_filt, fun = "MinProb", q = 0.01)
+
+pdf("Sgo1 benomyl MS imputation", width=8, height=5, pointsize=1)
+plot_imputation(data_filt, data_imp)
+dev.off()
+```
+
+```{r}
+# Test every sample against the no tag control
+data_diff <- test_diff(data_imp, type = "control", control = "A_notag")
+dep <- add_rejections(data_diff, alpha = 0.05, lfc = log2(1.5))
+
+
+```
+
+
+
+```{r}
+df_wide <- get_df_wide(data_diff)
+write.csv(df_wide, file="df_widepub.csv")
+```
+
+
+```{r}
+pdf("Sgo1 benomyl MS selected", width=8, height=5, pointsize=1)
+plot_single(dep, proteins = "SGO1")
+plot_single(dep, proteins = c("RTS1", "TPD3"))
+plot_single(dep, proteins = c("BRN1","YCS4"))
+dev.off()
+
+```
+
